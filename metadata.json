@@ -1,0 +1,6 @@
+{
+  "name": "PrimaBazaar - Pasaran Komuniti Media Prima",
+  "description": "Platform pasaran dalaman eksklusif untuk komuniti warga kerja Media Prima Berhad, TV3, NSTP, REV Media, dan Big Tree.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
