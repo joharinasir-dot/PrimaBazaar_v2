@@ -10,6 +10,25 @@
 [![Firebase](https://img.shields.io/badge/Firebase-Firestore%20%26%20Auth-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![Vite](https://img.shields.io/badge/Vite-8.x-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![SSO Azure AD](https://img.shields.io/badge/SSO-Azure_Active_Directory-0078D4?style=for-the-badge&logo=microsoft-azure&logoColor=white)](https://azure.microsoft.com/)
+[![Live Demo](https://img.shields.io/badge/Live_App-AI_Studio_Demo-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.studio/apps/1d0265ee-9446-4e5e-9025-2f09d359ec11)
+
+---
+
+## 🔗 Pautan Langsung Aplikasi / Live Demo & Testing
+
+Pengguna dan penguji boleh mengakses serta menguji aplikasi ini secara langsung melalui pautan rasmi Google AI Studio:
+
+🚀 **[Buka PrimaBazaar di Google AI Studio](https://ai.studio/apps/1d0265ee-9446-4e5e-9025-2f09d359ec11)**  
+URL Langsung: `https://ai.studio/apps/1d0265ee-9446-4e5e-9025-2f09d359ec11`
+
+> 💡 **Nota Pengujian:** Anda boleh mencuba pelbagai fungsi seperti:
+> - Mengimbas & menghantar resit bayaran **DuitNow QR**
+> - Berinteraksi di panel **Pesanan & Sembang** bersama *Kak Ani* (TV3 Production Ext 8421)
+> - Menghantar ulasan 5-bintang dalam **Beri Penilaian & Maklum Balas**
+> - Menerbitkan iklan barangan krew baharu dalam **Terbitkan Iklan**
+> - Meneliti **Pelan Tapak Kafeteria Sri Pentas** bagi lokasi serahan makanan panas
+> 
+> *Semua data diselaraskan secara langsung ke pangkalan data **Firebase Firestore**.*
 
 ---
 
