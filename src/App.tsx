@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  currentUser, 
+  currentUser as defaultUser, 
   sellerKakAni, 
   initialProducts, 
   initialReviews, 
   initialChatThreads 
 } from './data/mockData';
-import { Product, Review, ChatThread, ChatMessage } from './types';
+import { Product, Review, ChatThread, ChatMessage, User } from './types';
 import { Navbar } from './components/Navbar';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { MarketplaceHome } from './components/MarketplaceHome';
@@ -19,9 +19,29 @@ import { DuitNowModal } from './components/DuitNowModal';
 import { ReviewModal } from './components/ReviewModal';
 import { CafeteriaMapModal } from './components/CafeteriaMapModal';
 import { CobeGuidelinesModal } from './components/CobeGuidelinesModal';
+import { 
+  testConnection, 
+  seedInitialDataIfEmpty, 
+  subscribeToProducts, 
+  addProductToFirestore, 
+  updateProductStockInFirestore,
+  subscribeToReviews, 
+  addReviewToFirestore, 
+  subscribeToChatThreads,
+  subscribeToChatMessages,
+  addChatMessageToFirestore,
+  updateChatThreadInFirestore,
+  createOrderInFirestore,
+  OrderRecord,
+  auth,
+  loginWithGoogle,
+  logoutUser
+} from './firebase/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'pasar' | 'detail' | 'iklan' | 'sembang' | 'profil' | 'cobe'>('pasar');
+  const [currentUser, setCurrentUser] = useState<User>(defaultUser);
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [selectedProduct, setSelectedProduct] = useState<Product>(initialProducts[0]);
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
@@ -29,6 +49,7 @@ export default function App() {
   const [activeThreadId, setActiveThreadId] = useState<string>('thread_kak_ani');
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(false);
 
   // Modal states
   const [isDuitNowOpen, setIsDuitNowOpen] = useState(false);
@@ -40,6 +61,91 @@ export default function App() {
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [isCobeOpen, setIsCobeOpen] = useState(false);
+
+  // Initialize and connect to Firebase Firestore
+  useEffect(() => {
+    let unsubscribeProducts: (() => void) | undefined;
+    let unsubscribeReviews: (() => void) | undefined;
+    let unsubscribeThreads: (() => void) | undefined;
+
+    async function initializeFirebase() {
+      // 1. Mandatory connection test
+      const connected = await testConnection();
+      setIsFirebaseConnected(connected);
+
+      // 2. Auto-seed ALL default collections if empty (products, reviews, chat_threads, chat_messages, users)
+      await seedInitialDataIfEmpty();
+
+      // 3. Real-time products listener
+      unsubscribeProducts = subscribeToProducts((realtimeProducts) => {
+        if (realtimeProducts && realtimeProducts.length > 0) {
+          setProducts(realtimeProducts);
+        }
+      });
+
+      // 4. Real-time reviews listener
+      unsubscribeReviews = subscribeToReviews((realtimeReviews) => {
+        if (realtimeReviews && realtimeReviews.length > 0) {
+          setReviews(realtimeReviews);
+        }
+      });
+
+      // 5. Real-time chat threads listener
+      unsubscribeThreads = subscribeToChatThreads((realtimeThreads) => {
+        if (realtimeThreads && realtimeThreads.length > 0) {
+          setChatThreads((prev) =>
+            realtimeThreads.map((rt) => {
+              const local = prev.find((p) => p.id === rt.id);
+              return {
+                ...rt,
+                messages: local ? local.messages : [],
+              };
+            })
+          );
+        }
+      });
+    }
+
+    initializeFirebase();
+
+    // 6. Real-time chat messages listener for active thread
+    const unsubscribeMessages = subscribeToChatMessages(activeThreadId, (messages) => {
+      if (messages && messages.length > 0) {
+        setChatThreads((prev) =>
+          prev.map((thread) => {
+            if (thread.id === activeThreadId) {
+              return {
+                ...thread,
+                messages: [...thread.messages, ...messages.filter((m) => !thread.messages.some((tm) => tm.id === m.id))],
+              };
+            }
+            return thread;
+          })
+        );
+      }
+    });
+
+    // 7. Auth state listener
+    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        setCurrentUser((prev) => ({
+          ...prev,
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || prev.name,
+          avatar: firebaseUser.photoURL || prev.avatar,
+          verified: true,
+        }));
+      }
+    });
+
+    return () => {
+      if (unsubscribeProducts) unsubscribeProducts();
+      if (unsubscribeReviews) unsubscribeReviews();
+      if (unsubscribeThreads) unsubscribeThreads();
+      unsubscribeMessages();
+      unsubscribeAuth();
+    };
+  }, [activeThreadId]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -62,14 +168,32 @@ export default function App() {
     setIsDuitNowOpen(true);
   };
 
-  const handleConfirmDuitNowPayment = (method: 'duitnow' | 'cod') => {
+  const handleConfirmDuitNowPayment = async (method: 'duitnow' | 'cod') => {
     setIsDuitNowOpen(false);
 
+    const now = new Date();
+    const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} PG`;
+    const referenceNo = `DUIT-MP-20241024-${Math.floor(10000 + Math.random() * 90000)}`;
+
+    // 1. Record Order in Firestore
+    const newOrder: OrderRecord = {
+      id: `ord_${Date.now()}`,
+      productId: duitNowProduct.id,
+      productTitle: duitNowProduct.title,
+      quantity: duitNowQty,
+      totalAmount: duitNowTotal,
+      paymentMethod: method,
+      buyerId: currentUser.id,
+      buyerName: currentUser.name,
+      sellerId: duitNowProduct.seller.id,
+      sellerName: duitNowProduct.seller.name,
+      referenceNo: method === 'duitnow' ? referenceNo : undefined,
+      status: method === 'duitnow' ? 'paid' : 'pending_cod',
+      createdAt: new Date().toISOString(),
+    };
+    await createOrderInFirestore(newOrder);
+
     if (method === 'duitnow') {
-      // Add DuitNow receipt into Kak Ani's chat thread
-      const now = new Date();
-      const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} PG`;
-      
       const newDuitNowMsg: ChatMessage = {
         id: `msg_pay_${Date.now()}`,
         sender: 'user',
@@ -82,7 +206,7 @@ export default function App() {
           recipientName: duitNowProduct.seller.name,
           recipientPhone: `019-3827109 (${duitNowProduct.seller.nickname})`,
           recipientAccount: `${duitNowProduct.seller.nickname} MPB`,
-          referenceNo: `DUIT-MP-20241024-${Math.floor(10000 + Math.random() * 90000)}`,
+          referenceNo,
           transactionTime: `24 Okt 2024, ${timeStr}`,
           sourceAccount: 'Maybank2u Corp (Akaun Kakitangan MPB)',
           fileName: `e-Resit_DuitNow_MP88421.pdf`,
@@ -105,26 +229,23 @@ export default function App() {
         })
       );
 
-      // Decrement product stock
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.id === duitNowProduct.id
-            ? { ...p, stockLeft: Math.max(0, p.stockLeft - duitNowQty) }
-            : p
-        )
-      );
+      // Decrement stock in Firestore
+      const newStock = Math.max(0, duitNowProduct.stockLeft - duitNowQty);
+      await updateProductStockInFirestore(duitNowProduct.id, newStock);
+      await addChatMessageToFirestore('thread_kak_ani', newDuitNowMsg);
+      await updateChatThreadInFirestore('thread_kak_ani', `Bayaran RM${duitNowTotal.toFixed(2)} DuitNow Berjaya`, timeStr);
 
-      showToast(`Bayaran DuitNow RM${duitNowTotal.toFixed(2)} berjaya! Resit dihantar ke sembang Kak Ani.`);
+      showToast(`Bayaran DuitNow RM${duitNowTotal.toFixed(2)} berjaya! Rekod pesanan disimpan di Firebase Firestore.`);
       setActiveThreadId('thread_kak_ani');
       setActiveTab('sembang');
     } else {
-      showToast(`Pesanan COD dicatat! Sila buat pembayaran tunai tepat semasa ambil di kafeteria.`);
+      showToast(`Pesanan COD dicatat & disimpan di Firebase Firestore! Sila buat pembayaran tunai tepat semasa ambil di kafeteria.`);
       setActiveThreadId('thread_kak_ani');
       setActiveTab('sembang');
     }
   };
 
-  const handleSendMessage = (threadId: string, text: string) => {
+  const handleSendMessage = async (threadId: string, text: string) => {
     const now = new Date();
     const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} PG`;
 
@@ -151,9 +272,13 @@ export default function App() {
       })
     );
 
+    // Save to Firestore collections: chat_messages and update chat_threads
+    await addChatMessageToFirestore(threadId, userMsg);
+    await updateChatThreadInFirestore(threadId, text, timeStr);
+
     // Simulate polite reply from Kak Ani if chatting with her
     if (threadId === 'thread_kak_ani') {
-      setTimeout(() => {
+      setTimeout(async () => {
         const replyTime = `${now.getHours().toString().padStart(2, '0')}:${(now.getMinutes() + 1).toString().padStart(2, '0')} PG`;
         const sellerReplies = [
           'Baik Nurul, akak dah tandakan siap-siap. Jumpa di kaunter minuman ya! 👍',
@@ -184,11 +309,14 @@ export default function App() {
             return thread;
           })
         );
+
+        await addChatMessageToFirestore(threadId, contactMsg);
+        await updateChatThreadInFirestore(threadId, randomReply, replyTime);
       }, 1500);
     }
   };
 
-  const handleSubmitReview = (reviewData: {
+  const handleSubmitReview = async (reviewData: {
     rating: number;
     text: string;
     tags: string[];
@@ -216,15 +344,19 @@ export default function App() {
       helpfulCount: 1,
     };
 
+    // Store into Firebase Firestore
+    await addReviewToFirestore(newRev);
     setReviews([newRev, ...reviews]);
-    showToast('Terima kasih! Ulasan anda telah diterbitkan untuk tatapan rakan sekerja Media Prima.');
+    showToast('Terima kasih! Ulasan disimpan ke Firebase Firestore untuk tatapan rakan sekerja Media Prima.');
   };
 
-  const handlePublishSuccess = (newProduct: Product) => {
+  const handlePublishSuccess = async (newProduct: Product) => {
+    // Save to Firestore
+    await addProductToFirestore(newProduct);
     setProducts([newProduct, ...products]);
     setSelectedProduct(newProduct);
     setActiveTab('detail');
-    showToast('Iklan barangan anda berjaya diterbitkan ke suapan pasaran!');
+    showToast('Iklan barangan anda berjaya diterbitkan & disimpan ke Firebase Firestore!');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

@@ -1,0 +1,131 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Item listed on PrimaBazaar by Media Prima staff",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 120 },
+        "category": { "type": "string", "maxLength": 50 },
+        "categoryLabel": { "type": "string", "maxLength": 100 },
+        "price": { "type": "number" },
+        "unitLabel": { "type": "string", "maxLength": 50 },
+        "stockLeft": { "type": "number" },
+        "totalStock": { "type": "number" },
+        "location": { "type": "string", "maxLength": 200 },
+        "hub": { "type": "string", "maxLength": 50 },
+        "description": { "type": "string", "maxLength": 3000 },
+        "adId": { "type": "string", "maxLength": 50 },
+        "sellerName": { "type": "string", "maxLength": 150 },
+        "rating": { "type": "number" },
+        "reviewCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "category", "price", "description", "sellerName"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Colleague rating and feedback for seller",
+      "type": "object",
+      "properties": {
+        "authorName": { "type": "string", "maxLength": 150 },
+        "authorDept": { "type": "string", "maxLength": 150 },
+        "rating": { "type": "number" },
+        "text": { "type": "string", "maxLength": 1000 },
+        "itemPurchased": { "type": "string", "maxLength": 200 },
+        "itemPrice": { "type": "number" },
+        "paymentMethod": { "type": "string", "maxLength": 50 },
+        "helpfulCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["authorName", "rating", "text"]
+    },
+    "ChatThread": {
+      "title": "ChatThread",
+      "description": "Conversation thread between colleagues",
+      "type": "object",
+      "properties": {
+        "contactName": { "type": "string", "maxLength": 150 },
+        "contactDept": { "type": "string", "maxLength": 150 },
+        "contactExt": { "type": "string", "maxLength": 50 },
+        "lastMessage": { "type": "string", "maxLength": 1000 },
+        "lastMessageTime": { "type": "string", "maxLength": 50 },
+        "category": { "type": "string", "maxLength": 20 },
+        "unreadCount": { "type": "number" }
+      },
+      "required": ["contactName", "contactDept"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Direct communication message between buyer and seller",
+      "type": "object",
+      "properties": {
+        "threadId": { "type": "string", "maxLength": 128 },
+        "sender": { "type": "string", "maxLength": 50 },
+        "senderName": { "type": "string", "maxLength": 150 },
+        "time": { "type": "string", "maxLength": 50 },
+        "text": { "type": "string", "maxLength": 2000 },
+        "isPaymentConfirmation": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["threadId", "sender", "senderName"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "DuitNow or COD transaction order record",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string", "maxLength": 128 },
+        "productTitle": { "type": "string", "maxLength": 200 },
+        "quantity": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "paymentMethod": { "type": "string", "maxLength": 50 },
+        "buyerName": { "type": "string", "maxLength": 150 },
+        "sellerName": { "type": "string", "maxLength": 150 },
+        "referenceNo": { "type": "string", "maxLength": 100 },
+        "status": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["productId", "productTitle", "totalAmount", "paymentMethod", "buyerName"]
+    },
+    "User": {
+      "title": "User",
+      "description": "Media Prima staff member profile",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 150 },
+        "ssoId": { "type": "string", "maxLength": 50 },
+        "role": { "type": "string", "maxLength": 150 },
+        "department": { "type": "string", "maxLength": 150 },
+        "location": { "type": "string", "maxLength": 150 }
+      },
+      "required": ["name", "ssoId"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Public listings available to staff"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Peer reviews and feedback"
+    },
+    "/chat_threads/{threadId}": {
+      "schema": "ChatThread",
+      "description": "Conversation threads between staff members"
+    },
+    "/chat_messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Real-time communication and orders"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "All completed transactions and receipts"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Staff profile directory"
+    }
+  }
+}

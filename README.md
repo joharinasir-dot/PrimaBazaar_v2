@@ -7,6 +7,7 @@
 [![React 19](https://img.shields.io/badge/React-19.0-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Tailwind CSS v4](https://img.shields.io/badge/Tailwind_CSS-v4.0-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Firebase](https://img.shields.io/badge/Firebase-Firestore%20%26%20Auth-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![Vite](https://img.shields.io/badge/Vite-8.x-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![SSO Azure AD](https://img.shields.io/badge/SSO-Azure_Active_Directory-0078D4?style=for-the-badge&logo=microsoft-azure&logoColor=white)](https://azure.microsoft.com/)
 
@@ -150,6 +151,21 @@ Aplikasi ini disepadukan dengan sistem pengesahan identiti tunggal syarikat (**M
    ```bash
    npm run build
    ```
+
+---
+
+## 🗄️ Pangkalan Data Firebase Firestore (`ai-studio-primabazaarpasar-1d0265ee-9446-4e5e-9025-2f09d359ec11`)
+
+Semua data aplikasi kini disimpan dan diselaraskan secara langsung di **Firebase Firestore**:
+
+| Koleksi (*Collection*) | Keterangan & Kandungan | Mod Penyelarasan |
+| :--- | :--- | :--- |
+| **`products`** | Iklan barangan sarapan, pakaian kru, gajet, dan perabot pejabat | Masa nyata (`onSnapshot`) & auto-seed |
+| **`reviews`** | Penilaian 1–5 bintang, tag pujian komuniti, dan foto bungkusan | Masa nyata (`onSnapshot`) & tambah ulasan |
+| **`chat_threads`** | Senarai perbualan mengikut staf (Kak Ani, Ahmad Farhan, dsb.) | Masa nyata (`onSnapshot`) & kemas kini mesej terakhir |
+| **`chat_messages`** | Mesej langsung, slip transaksi DuitNow, dan status pesanan | Masa nyata (`onSnapshot`) mengikut `threadId` |
+| **`orders`** | Rekod lengkap pembelian DuitNow QR & COD berserta nombor rujukan | Rekod pesanan baharu (`createOrderInFirestore`) |
+| **`users`** | Direktori kakitangan Media Prima dan penjual sah | Pengesahan Azure SSO & simpanan profil |
 
 ---
 

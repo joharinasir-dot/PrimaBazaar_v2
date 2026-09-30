@@ -1,0 +1,97 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Hardened Primitives
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Connection validation test
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+
+    // Products Collection (All marketplace listings)
+    match /products/{productId} {
+      allow read: if true;
+      allow create: if isValidId(productId) 
+                    && incoming().title is string && incoming().title.size() <= 120
+                    && incoming().price is number && incoming().price >= 0
+                    && incoming().category is string && incoming().category.size() <= 50;
+      allow update: if isValidId(productId)
+                    && incoming().title is string && incoming().title.size() <= 120
+                    && incoming().price is number && incoming().price >= 0;
+      allow delete: if false;
+    }
+
+    // Reviews Collection (Peer reviews and feedback)
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isValidId(reviewId)
+                    && incoming().authorName is string && incoming().authorName.size() <= 150
+                    && incoming().rating is number && incoming().rating >= 1 && incoming().rating <= 5
+                    && incoming().text is string && incoming().text.size() <= 1000;
+      allow update: if isValidId(reviewId)
+                    && incoming().helpfulCount is number;
+      allow delete: if false;
+    }
+
+    // Chat Threads Collection
+    match /chat_threads/{threadId} {
+      allow read: if true;
+      allow create: if isValidId(threadId)
+                    && incoming().contactName is string && incoming().contactName.size() <= 150;
+      allow update: if isValidId(threadId);
+      allow delete: if false;
+    }
+
+    // Chat Messages Collection
+    match /chat_messages/{messageId} {
+      allow read: if true;
+      allow create: if isValidId(messageId)
+                    && incoming().threadId is string && incoming().threadId.size() <= 128
+                    && incoming().sender is string && incoming().sender.size() <= 50
+                    && incoming().senderName is string && incoming().senderName.size() <= 150;
+      allow update: if isValidId(messageId);
+      allow delete: if false;
+    }
+
+    // Orders Collection (All purchases, DuitNow & COD transactions)
+    match /orders/{orderId} {
+      allow read: if true;
+      allow create: if isValidId(orderId)
+                    && incoming().productId is string
+                    && incoming().totalAmount is number && incoming().totalAmount >= 0
+                    && incoming().paymentMethod is string;
+      allow update: if isValidId(orderId);
+      allow delete: if false;
+    }
+
+    // Users Collection (Media Prima Staff Directory)
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if isValidId(userId)
+                    && incoming().name is string;
+      allow update: if isValidId(userId);
+      allow delete: if false;
+    }
+  }
+}
